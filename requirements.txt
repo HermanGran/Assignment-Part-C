@@ -1,0 +1,6 @@
+numpy
+geopandas
+contextily
+matplotlib
+PyQt6
+geopy
