@@ -4,15 +4,15 @@ import copy
 
 
 class ACO:
-    def __init__(self, distance_matrix, max_iterations=100, n_ants=5, update_callback=None):
+    def __init__(self, distance_matrix, max_iterations=100, n_ants=10, update_callback=None, evaporation_rate=0.5):
 
         self.distance_matrix = distance_matrix
         self.max_iterations = max_iterations
         self.n_ants = n_ants
-        self.q = 1000
-        self.initial_pheromone = 1
+        self.q = 10
+        self.initial_pheromone = 10
         self.pheromone_weight = 1
-        self.evaporation_rate = 0.05
+        self.evaporation_rate = evaporation_rate
 
         rows, cols = self.distance_matrix.shape
 
@@ -24,6 +24,7 @@ class ACO:
         self.best_solution = Ant(0)
         self.best_solution.cost = np.inf
 
+        # This implementation is with help from chatGPT
         self.update_callback = update_callback
 
     # Algorithm inspired and mostly copied from matlab example from Vijander
@@ -73,8 +74,8 @@ class ACO:
 
     def roulette_wheel_selection(self, probability):
         """Ensure proper probability selection by avoiding numerical instability."""
-        probability = np.nan_to_num(probability)  # Avoid division errors
-        probability /= np.sum(probability)  # Normalize
+        probability = np.nan_to_num(probability)
+        probability /= np.sum(probability)
 
         r = np.random.rand()
         c = np.cumsum(probability)

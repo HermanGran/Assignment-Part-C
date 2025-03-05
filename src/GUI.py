@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from PyQt6.QtWidgets import (
-    QMainWindow, QPushButton, QLabel, QVBoxLayout, QWidget, QTableWidget, QTableWidgetItem,
+    QMainWindow, QPushButton, QLabel, QVBoxLayout, QWidget, QTableWidget, QTableWidgetItem, QLineEdit, QHBoxLayout, QSlider, QSpinBox, QDoubleSpinBox
 )
+from PyQt6.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import threading
 
@@ -17,7 +18,7 @@ class GUI(QMainWindow):
         super().__init__()
         self.setWindowTitle("Traveling Salesman Problem")
 
-        self.df = pd.read_csv(path) # Might move the path import
+        self.df = pd.read_csv(path)
         self.num_cities = len(self.df)
 
         # Computes distance matrix
@@ -27,38 +28,62 @@ class GUI(QMainWindow):
         for i in range(self.num_cities):
             for j in range(self.num_cities):
                 if i != j:
-                    # Calculate distance with the Haversine formula
                     self.distance_matrix[i, j] = geodesic(self.cities[i], self.cities[j]).km
 
-        # Setup GUI layout
+        # Setup Main Horizontal Layout
         self.central_widget = QWidget(self)
         self.setCentralWidget(self.central_widget)
-        self.layout = QVBoxLayout(self.central_widget)
+        self.main_layout = QHBoxLayout(self.central_widget)
 
-        # Matplot figure
-        self.figure, self.ax = plt.subplots(figsize=(6, 6))
+        # Left Side: Matplotlib Figure
+        self.plot_layout = QVBoxLayout()
+        self.main_layout.addLayout(self.plot_layout, stretch=3)
+
+        self.figure, self.ax = plt.subplots(figsize=(5, 8))
         self.canvas = FigureCanvas(self.figure)
-        self.layout.addWidget(self.canvas)
+        self.plot_layout.addWidget(self.canvas)
+
+        # Settings ACO Inputs & Labels
+        self.settings_layout = QVBoxLayout()
+        self.main_layout.addLayout(self.settings_layout, stretch=3)
 
         # Button to start ACO
         self.start_button = QPushButton("Find Best Route")
         self.start_button.clicked.connect(self.start_algorithm)
-        self.layout.addWidget(self.start_button)
+        self.settings_layout.addWidget(self.start_button)
 
-        # Label to display the best distance
+        # Number of iterations
+        layout_max_iterations, self.n_iterations = self.create_input_field("Iterations", 50, 1, 1000)
+        self.settings_layout.addLayout(layout_max_iterations)
+
+        # Number of Ants
+        layout_ants, self.n_ants_input = self.create_input_field("Number of Ants", 10, 1, 100)
+        self.settings_layout.addLayout(layout_ants)
+
+        # Evaporation rate
+        layout_evaporation, self.evaporation_rate = self.create_double_input("Evaporation Rate", 0.05, 0.0001, 1)
+        self.settings_layout.addLayout(layout_evaporation)
+
+        # Best Distance Label
         self.best_distance_label = QLabel("Best Distance: N/A")
-        self.layout.addWidget(self.best_distance_label)
+        self.settings_layout.addWidget(self.best_distance_label)
 
-        # Distance matrix Table
-        self.pheromone_matrix = QTableWidget(self.num_cities, self.num_cities)
+        # Best Route Label
+        self.best_route_label = QLabel("Best Route: N/A")
+        self.best_route_label.setWordWrap(True)
+        self.best_route_label.setFixedWidth(400)
+        self.settings_layout.addWidget(self.best_route_label)
+
+        # Pheromone matrix
         self.pheromone_matrix_label = QLabel("Pheromone Matrix")
         self.pheromone_matrix_label.setStyleSheet("font-size: 16px; font-weight: bold;")
-        self.layout.addWidget(self.pheromone_matrix_label)
-        self.distance_matrix_info_label = QLabel("This matrix displays the pheromones between each city")
-        self.layout.addWidget(self.distance_matrix_info_label)
-        self.layout.addWidget(self.pheromone_matrix)
+        self.settings_layout.addWidget(self.pheromone_matrix_label)
+
+        self.pheromone_matrix = QTableWidget(self.num_cities, self.num_cities)
+        self.settings_layout.addWidget(self.pheromone_matrix)
         self.fill_table(self.pheromone_matrix, np.zeros((self.num_cities, self.num_cities)))
 
+        # Initialize the plot
         self.plot_cities()
 
     def plot_cities(self):
@@ -69,6 +94,9 @@ class GUI(QMainWindow):
 
         max_distance = np.max(self.distance_matrix)
 
+        # Store references to cost lines
+        self.cost_lines = []
+
         # Displays the cost as thick lines
         for i in range(self.num_cities):
             for j in range(i + 1, self.num_cities):
@@ -76,11 +104,12 @@ class GUI(QMainWindow):
                 thickness = (distance / max_distance) * 5
 
                 # Plots lines between each city
-                self.ax.plot(
+                line, = self.ax.plot(
                     [longitudes[i], longitudes[j]],
                     [latitudes[i], latitudes[j]],
                     'k-', linewidth=thickness, alpha=0.2, color='blue'
                 )
+                self.cost_lines.append(line)
 
         # Displays cities
         self.ax.scatter(longitudes, latitudes, c='red', marker='o')
@@ -100,7 +129,11 @@ class GUI(QMainWindow):
         threading.Thread(target=self.run_ACO, daemon=True).start()
 
     def run_ACO(self):
-        aco = ACO(self.distance_matrix, update_callback=self.update_GUI)
+        n_iterations = self.n_iterations.value()
+        n_ants = self.n_ants_input.value()
+        evaporation_rate = self.evaporation_rate.value()
+
+        aco = ACO(self.distance_matrix, update_callback=self.update_GUI, max_iterations=n_iterations, n_ants=n_ants, evaporation_rate=evaporation_rate)
         aco.run()
 
     def fill_table_new(self, table, matrix):
@@ -140,7 +173,9 @@ class GUI(QMainWindow):
                 table.setItem(i, j, item)
 
     def update_GUI(self, best_tour, best_cost, matrix, iteration):
-        """Updates the GUI dynamically while ACO runs."""
+
+        for line in self.cost_lines:
+            line.set_visible(False)
 
         # Update route dynamically
         if hasattr(self, "route_line"):
@@ -160,15 +195,49 @@ class GUI(QMainWindow):
 
         # Print the route in a readable format
         route_str = " → ".join(tour)
-        print(f"Best Route: {route_str}")
 
         # Update distance label
-        self.best_distance_label.setText(f"Iteration {iteration + 1}: Best Distance = {best_cost:.2f} km \n"
-                                         f"Best Route: \n"
-                                         f"{route_str}")
+        self.best_distance_label.setText(f"Best Distance: {best_cost:.2f} km in {iteration + 1} iterations")
+        self.best_route_label.setText(f"Best Route: {route_str}")
 
         # Update the pheromone matrix in the table
         self.fill_table(self.pheromone_matrix, matrix)
 
         # Redraw
         self.canvas.draw_idle()
+
+    def create_input_field(self, label_text, default_value, min_val, max_val):
+        """Helper function to create labeled input fields."""
+        layout = QHBoxLayout()
+
+        label = QLabel(label_text)
+        spin_box = QSpinBox()
+        spin_box.setMinimum(min_val)
+        spin_box.setMaximum(max_val)
+        spin_box.setValue(default_value)
+
+        layout.addWidget(label)
+        layout.addWidget(spin_box)
+
+        return layout, spin_box
+
+    def create_double_input(self, label_text, default_value, min_val, max_val, step_size=0.0001):
+        """Helper function to create labeled floating-point input fields."""
+        layout = QHBoxLayout()
+
+        label = QLabel(label_text)
+        double_spin_box = QDoubleSpinBox()
+        double_spin_box.setDecimals(4)  # ✅ Allows up to 4 decimal places
+        double_spin_box.setSingleStep(step_size)  # ✅ Set precision step
+        double_spin_box.setMinimum(min_val)
+        double_spin_box.setMaximum(max_val)
+        double_spin_box.setValue(default_value)
+
+        layout.addWidget(label)
+        layout.addWidget(double_spin_box)
+
+        return layout, double_spin_box
+
+    def setup_layout(self):
+        """Setup for layout of widget"""
+
