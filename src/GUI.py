@@ -67,11 +67,11 @@ class GUI(QMainWindow):
             self.settings_layout.addLayout(layout_weight)
 
             # Cognitive factor
-            layout_cognitive, self.cognitive_factor = self.create_double_input("Evaporation Rate", 2, 0, 10)
+            layout_cognitive, self.cognitive_factor = self.create_double_input("Cognitive Factor", 2, 0, 10)
             self.settings_layout.addLayout(layout_cognitive)
 
             # Social factor
-            layout_social, self.social_factor = self.create_double_input("Evaporation Rate", 2, 0, 10)
+            layout_social, self.social_factor = self.create_double_input("Social Factor", 2, 0, 10)
             self.settings_layout.addLayout(layout_social)
 
             # Displaying best cost
@@ -108,7 +108,7 @@ class GUI(QMainWindow):
             self.settings_layout.addWidget(self.start_button)
 
             # Number of iterations
-            layout_max_iterations, self.n_iterations = self.create_input_field("Iterations", 50, 1, 1000)
+            layout_max_iterations, self.n_iterations = self.create_input_field("Iterations", 50, 1, 100000)
             self.settings_layout.addLayout(layout_max_iterations)
 
             # Number of Ants
@@ -118,6 +118,18 @@ class GUI(QMainWindow):
             # Evaporation rate
             layout_evaporation, self.evaporation_rate = self.create_double_input("Evaporation Rate", 0.05, 0.0001, 1)
             self.settings_layout.addLayout(layout_evaporation)
+
+            # Q parameter
+            layout_q, self.q_parameter = self.create_double_input("Q Parameter", 10, 0, 10000)
+            self.settings_layout.addLayout(layout_q)
+
+            # initial_pheromone
+            layout_initial_pheromone, self.initial_pheromone = self.create_double_input("Initial Pheromone", 10, 0, 100)
+            self.settings_layout.addLayout(layout_initial_pheromone)
+
+            # Pheromone weight
+            layout_pheromone_weight, self.pheromone_weight = self.create_double_input("Pheromone Weight", 1, 0, 100)
+            self.settings_layout.addLayout(layout_pheromone_weight)
 
             # Best Distance Label
             self.best_distance_label = QLabel("Best Distance: N/A")
@@ -191,8 +203,20 @@ class GUI(QMainWindow):
         n_iterations = self.n_iterations.value()
         n_ants = self.n_ants_input.value()
         evaporation_rate = self.evaporation_rate.value()
+        q = self.q_parameter.value()
+        pheromone_weight = self.pheromone_weight.value()
+        initial_pheromone = self.initial_pheromone.value()
 
-        aco = ACO(self.distance_matrix, update_callback=self.update_GUI_ACO, max_iterations=n_iterations, n_ants=n_ants, evaporation_rate=evaporation_rate)
+        aco = ACO(
+            self.distance_matrix,
+            update_callback=self.update_GUI_ACO,
+            max_iterations=n_iterations,
+            n_ants=n_ants,
+            evaporation_rate=evaporation_rate,
+            q=q,
+            pheromone_weight=pheromone_weight,
+            initial_pheromone=initial_pheromone
+        )
         aco.run()
 
     def run_BPSO(self):
@@ -244,7 +268,7 @@ class GUI(QMainWindow):
         route_str = " → ".join(tour)
 
         # Update distance label
-        self.best_distance_label.setText(f"Best Distance: {best_cost:.2f} km in {iteration + 1} iterations, time used: {time}s")
+        self.best_distance_label.setText(f"Best Distance: {best_cost:.2f} km in {iteration} iterations, time used: {time}s")
         self.best_route_label.setText(f"Best Route: {route_str}")
 
         # Update the pheromone matrix in the table

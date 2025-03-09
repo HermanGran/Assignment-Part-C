@@ -2,17 +2,28 @@ import numpy as np
 from Ant import Ant
 import copy
 import time
+import matplotlib.pyplot as plt
 
 
 class ACO:
-    def __init__(self, distance_matrix, max_iterations=100, n_ants=10, update_callback=None, evaporation_rate=0.5):
+    def __init__(
+            self,
+            distance_matrix,
+            max_iterations=100,
+            n_ants=10,
+            update_callback=None,
+            evaporation_rate=0.5,
+            pheromone_weight=1,
+            q=10,
+            initial_pheromone=10
+    ):
 
         self.distance_matrix = distance_matrix
         self.max_iterations = max_iterations
         self.n_ants = n_ants
-        self.q = 10
-        self.initial_pheromone = 10
-        self.pheromone_weight = 1
+        self.q = q
+        self.initial_pheromone = initial_pheromone
+        self.pheromone_weight = pheromone_weight
         self.evaporation_rate = evaporation_rate
 
         rows, cols = self.distance_matrix.shape
@@ -94,3 +105,12 @@ class ACO:
         self.ants[iteration].cost = 0
         for j in range(n):
             self.ants[iteration].cost += self.distance_matrix[tour[j], tour[j + 1]]
+
+    def plot_convergence(self):
+        fig, ax = plt.subplots()  # Create a new figure and axes
+        ax.plot(self.best_cost)
+        ax.set_title("Plot of Convergence")
+        ax.set_xlabel("Iteration")
+        ax.set_ylabel("Cost")
+        plt.savefig("PlotOfConvergenceACO")
+        plt.show()

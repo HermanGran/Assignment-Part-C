@@ -9,6 +9,11 @@ taxi = "/Users/hermangran/Documents/Programmering/Assignment-Part-C/Data/taxi.cs
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+
+    # Run below for BPSO Algorithm, comment out the other
     main_window = GUI(taxi,"BPSO")
+
+    # Run below for ACO Algorithm, comment out the other
+    # main_window = GUI(city, "ACO")
     main_window.show()
     sys.exit(app.exec())
