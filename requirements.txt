@@ -4,3 +4,4 @@ contextily
 matplotlib
 PyQt6
 geopy
+pandas

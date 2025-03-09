@@ -66,8 +66,6 @@ class ACO:
         if self.update_callback:
             self.update_callback(self.best_solution.get_tour(), self.best_solution.cost, self.pheromone_matrix, self.max_iterations, time_to_finish)
 
-
-
     def update_pheromones(self):
         self.evaporate()
         for i in range(self.n_ants):
@@ -79,7 +77,6 @@ class ACO:
         self.pheromone_matrix *= (1 - self.evaporation_rate)
 
     def roulette_wheel_selection(self, probability):
-        """Ensure proper probability selection by avoiding numerical instability."""
         probability = np.nan_to_num(probability)
         probability /= np.sum(probability)
 

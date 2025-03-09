@@ -6,13 +6,13 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import threading
-
 import pandas as pd
 from geopy.distance import geodesic
 from ACO import ACO
 from BPSO import BPSO
 
 
+# Gui class displaying plots and adjusting algorithms more intuitively
 class GUI(QMainWindow):
 
     def __init__(self, path, algorithm):
@@ -22,7 +22,7 @@ class GUI(QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.main_layout = QHBoxLayout(self.central_widget)
 
-        # Left Side: Matplotlib Figure
+        # Matplotlib Figure
         self.plot_layout = QVBoxLayout()
         self.main_layout.addLayout(self.plot_layout, stretch=3)
 
