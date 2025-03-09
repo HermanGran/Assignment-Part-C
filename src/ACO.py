@@ -1,6 +1,7 @@
 import numpy as np
 from Ant import Ant
 import copy
+import time
 
 
 class ACO:
@@ -30,6 +31,7 @@ class ACO:
     # Algorithm inspired and mostly copied from matlab example from Vijander
     def run(self):
         # ACO Main loop
+        start_time = time.time()
         for i in range(self.max_iterations):
             for k in range(self.n_ants):
                 self.ants[k].tour = []
@@ -57,10 +59,14 @@ class ACO:
             # Store best cost
             self.best_cost.append(self.best_solution.cost)
 
-            if self.update_callback:
-                self.update_callback(self.best_solution.get_tour(), self.best_solution.cost, self.pheromone_matrix, i)
-
             print(f"Iteration = {i}, best cost = {self.best_solution.cost}")
+
+        time_to_finish = time.time() - start_time
+
+        if self.update_callback:
+            self.update_callback(self.best_solution.get_tour(), self.best_solution.cost, self.pheromone_matrix, self.max_iterations, time_to_finish)
+
+
 
     def update_pheromones(self):
         self.evaporate()
